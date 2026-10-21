@@ -1,0 +1,56 @@
+# --- Application builds (CMake / Qt Creator) ---
+build/
+build-*/
+out/
+CMakeLists.txt.user*
+*.pro.user*
+*.qm
+moc_*.cpp
+moc_predefs.h
+ui_*.h
+qrc_*.cpp
+*.o
+*.a
+*.so
+compile_commands.json
+.qtcreator/
+.cache/
+
+# --- Yocto / kas build tree (lives on the build server, never in git) ---
+yocto/
+/build-yocto/
+sstate-cache/
+downloads/
+tmp/
+tmp-glibc/
+cache/
+bitbake-cookerdaemon.log
+.kas_shell_history
+# Layers fetched by kas (pinned in kas/clorela.yml)
+/poky/
+/meta-openembedded/
+/meta-raspberrypi/
+/meta-qt6/
+
+# --- Images ---
+*.wic
+*.wic.xz
+*.wic.bz2
+*.wic.bmap
+*.rpi-sdimg
+*.img
+
+# --- Local data written by the simulator during development ---
+*.db
+*.db-shm
+*.db-wal
+
+# --- Python / editors / OS ---
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db

@@ -1,0 +1,13 @@
+[Unit]
+Description=Clorela-OS Wi-Fi setup (imports wpa_supplicant.conf from the boot partition)
+After=local-fs.target boot.mount
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/clorela/clorela-wifi-setup
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

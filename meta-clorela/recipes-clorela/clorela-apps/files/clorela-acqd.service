@@ -1,0 +1,24 @@
+[Unit]
+Description=Clorela-OS acquisition service (nodes over I2C)
+Documentation=https://github.com/walcorg/clorela-os
+After=network.target clorela-boot-status.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=clorela
+Group=clorela
+ExecStart=/usr/bin/clorela-acqd
+Restart=on-failure
+RestartSec=5
+# /run/clorela/acqd.sock (control socket) and /var/lib/clorela (database).
+RuntimeDirectory=clorela
+RuntimeDirectoryPreserve=yes
+StateDirectory=clorela
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

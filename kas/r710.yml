@@ -1,0 +1,20 @@
+# Resource limits for the WALCORG build server: Dell PowerEdge R710, 12 GB RAM.
+#
+#   kas build kas/clorela.yml:kas/r710.yml
+#
+# Qt 6 has C++ files that need 1-2 GB of RAM each to compile, so the number
+# of parallel jobs is limited by memory, not by CPU cores. With 12 GB:
+#   - 3 BitBake tasks at a time, each with make -j3 (9 compilers at most)
+# Add at least 8 GB of swap on the SSD as a safety net (see README).
+#
+# If a RAM module fails and the server has less memory, lower both numbers
+# (e.g. 2 and -j 2 for 8 GB). If the build dies with "Killed" or
+# "internal compiler error: Killed", memory ran out: lower them as well.
+
+header:
+  version: 14
+
+local_conf_header:
+  r710: |
+    BB_NUMBER_THREADS = "3"
+    PARALLEL_MAKE = "-j 3"

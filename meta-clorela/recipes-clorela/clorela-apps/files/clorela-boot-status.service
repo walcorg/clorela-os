@@ -1,0 +1,14 @@
+[Unit]
+Description=Show BOOTING on the shield status display
+DefaultDependencies=no
+After=systemd-modules-load.service systemd-udev-trigger.service local-fs.target
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+# A missing or unplugged display must never delay or fail the boot.
+ExecStart=-/usr/bin/clorela-status BOOTING
+TimeoutStartSec=5
+
+[Install]
+WantedBy=sysinit.target

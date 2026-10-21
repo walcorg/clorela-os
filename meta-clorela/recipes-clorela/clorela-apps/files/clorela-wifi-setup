@@ -1,0 +1,30 @@
+#!/bin/sh
+# Clorela-OS Wi-Fi setup.
+#
+# The boot partition of the microSD card is FAT, so it can be edited from
+# Windows, macOS or Linux right after flashing. If it contains
+# wpa_supplicant.conf, that file is moved (not copied: it holds the Wi-Fi
+# password) to /etc/wpa_supplicant/wpa_supplicant-wlan0.conf. Then, if a
+# Wi-Fi configuration exists, wpa_supplicant is started on wlan0;
+# systemd-networkd gets the address by DHCP (20-wlan0.network).
+set -eu
+
+BOOT_CONF=/boot/wpa_supplicant.conf
+ETC_CONF=/etc/wpa_supplicant/wpa_supplicant-wlan0.conf
+
+if [ -f "$BOOT_CONF" ]; then
+    install -d -m 0755 /etc/wpa_supplicant
+    # Normalise Windows line endings, keep the file private.
+    tr -d '\r' < "$BOOT_CONF" > "$ETC_CONF.tmp"
+    chmod 0600 "$ETC_CONF.tmp"
+    mv "$ETC_CONF.tmp" "$ETC_CONF"
+    rm -f "$BOOT_CONF"
+    sync
+    echo "clorela-wifi: imported Wi-Fi configuration from the boot partition"
+fi
+
+if [ -f "$ETC_CONF" ]; then
+    systemctl --no-block start wpa_supplicant@wlan0.service
+else
+    echo "clorela-wifi: no Wi-Fi configured (see /usr/share/clorela/wpa_supplicant.conf.example)"
+fi

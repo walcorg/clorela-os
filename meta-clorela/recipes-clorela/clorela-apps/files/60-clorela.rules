@@ -1,0 +1,4 @@
+# Clorela-OS: let the "clorela" service user reach the shield buses.
+# I2C: nodes and status display. SPI: TROPIC01 secure element.
+SUBSYSTEM=="i2c-dev", GROUP="i2c", MODE="0660"
+SUBSYSTEM=="spidev", GROUP="spi", MODE="0660"

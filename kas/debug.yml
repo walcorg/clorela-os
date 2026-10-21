@@ -1,0 +1,12 @@
+# Development-only additions: root login without password, SSH server and
+# debugging tools. NEVER use this for images given to node-runners.
+#
+#   kas build kas/clorela.yml:kas/r710.yml:kas/debug.yml
+
+header:
+  version: 14
+
+local_conf_header:
+  debug: |
+    EXTRA_IMAGE_FEATURES += "allow-empty-password empty-root-password allow-root-login ssh-server-dropbear tools-debug"
+    IMAGE_INSTALL:append = " htop"

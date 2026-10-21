@@ -1,0 +1,19 @@
+# Clorela-OS Wi-Fi configuration.
+#
+# Copy this file as "wpa_supplicant.conf" to the boot partition of the
+# microSD card (the FAT drive your computer shows after flashing), edit the
+# network name and password, eject the card and boot the Pi. On first boot
+# Clorela-OS moves it to /etc/wpa_supplicant/wpa_supplicant-wlan0.conf and
+# deletes it from the boot partition.
+#
+# The Raspberry Pi Zero W only supports 2.4 GHz networks.
+
+ctrl_interface=/run/wpa_supplicant
+update_config=1
+# Two-letter country code (MX = Mexico): sets the legal Wi-Fi channels.
+country=MX
+
+network={
+    ssid="YOUR_NETWORK_NAME"
+    psk="YOUR_PASSWORD"
+}

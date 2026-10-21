@@ -1,0 +1,35 @@
+[Unit]
+Description=Clorela-OS interface (full screen on HDMI)
+Documentation=https://github.com/walcorg/clorela-os
+After=clorela-acqd.service systemd-user-sessions.service
+Wants=clorela-acqd.service
+# The interface takes over the first console.
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+[Service]
+Type=simple
+User=clorela
+Group=clorela
+# Close the boot splash right before the interface draws on the framebuffer.
+ExecStartPre=-/usr/bin/psplash-write QUIT
+ExecStart=/usr/bin/clorela-ui --fullscreen
+Restart=on-failure
+RestartSec=3
+Environment=QT_QPA_PLATFORM=linuxfb:fb=/dev/fb0
+Environment=QT_QPA_FB_HIDECURSOR=1
+Environment=XDG_RUNTIME_DIR=/run/clorela-ui
+RuntimeDirectory=clorela-ui
+RuntimeDirectoryMode=0700
+StateDirectory=clorela
+# [TO VERIFY] on the Pi: the interface owns tty1 so the text console does not
+# draw over it.
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

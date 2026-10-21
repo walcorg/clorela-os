@@ -29,6 +29,7 @@ NumericView::NumericView(QWidget *parent)
     m_table->setHorizontalHeaderLabels(cols);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_table->setSelectionMode(QAbstractItemView::NoSelection);
+    m_table->setFocusPolicy(Qt::NoFocus);
     m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     m_table->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     retranslate();

@@ -4,7 +4,7 @@
 <context>
     <name>GraphView</name>
     <message numerus="yes">
-        <location filename="../graphview.cpp" line="61"/>
+        <location filename="../graphview.cpp" line="66"/>
         <source>Mean transmission (sensors T0-T7), last %n cycle(s)</source>
         <translation>
             <numerusform>Transmisión media (sensores T0-T7), último ciclo</numerusform>
@@ -12,7 +12,7 @@
         </translation>
     </message>
     <message>
-        <location filename="../graphview.cpp" line="65"/>
+        <location filename="../graphview.cpp" line="58"/>
         <source>No measurements yet.</source>
         <translation>Aún no hay mediciones.</translation>
     </message>
@@ -137,13 +137,13 @@
     </message>
     <message>
         <location filename="../mainwindow.ui" line="191"/>
-        <location filename="../mainwindow.cpp" line="193"/>
+        <location filename="../mainwindow.cpp" line="247"/>
         <source>About Clorela-OS</source>
         <translation>Acerca de Clorela-OS</translation>
     </message>
     <message>
         <location filename="../mainwindow.ui" line="196"/>
-        <location filename="../mainwindow.cpp" line="203"/>
+        <location filename="../mainwindow.cpp" line="257"/>
         <source>About WALCORG</source>
         <translation>Acerca de WALCORG</translation>
     </message>
@@ -153,32 +153,72 @@
         <translation>Reportar un problema</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="83"/>
+        <location filename="../mainwindow.cpp" line="71"/>
+        <source>Acquisition service: %1</source>
+        <translation>Servicio de adquisición: %1</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="98"/>
         <source>Cannot open the measurement database: %1</source>
         <translation>No se puede abrir la base de datos de mediciones: %1</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="175"/>
+        <location filename="../mainwindow.cpp" line="195"/>
         <source>Online</source>
         <translation>En línea</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="175"/>
+        <location filename="../mainwindow.cpp" line="195"/>
         <source>Offline: restricted mode</source>
         <translation>Sin conexión: modo restringido</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="188"/>
+        <location filename="../mainwindow.cpp" line="204"/>
+        <source>Acquisition service not running</source>
+        <translation>Servicio de adquisición detenido</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="211"/>
+        <source>Acquisition stopped</source>
+        <translation>Adquisición detenida</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="213"/>
+        <source>Sampling...</source>
+        <translation>Muestreando...</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="215"/>
+        <source>Acquiring: cycle %1, next in %2 s</source>
+        <translation>Adquiriendo: ciclo %1, siguiente en %2 s</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="219"/>
+        <source>Acquisition waiting for Wi-Fi</source>
+        <translation>Adquisición esperando WiFi</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="221"/>
+        <source>Sterilizing (UVC): %1 s left</source>
+        <translation>Esterilizando (UVC): faltan %1 s</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="223"/>
+        <source>Acquisition error: %1</source>
+        <translation>Error de adquisición: %1</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="242"/>
         <source>This function is not available yet.</source>
         <translation>Esta función aún no está disponible.</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="194"/>
+        <location filename="../mainwindow.cpp" line="248"/>
         <source>&lt;b&gt;Clorela-OS %1&lt;/b&gt;&lt;br&gt;Embedded system of the WALCORG photobioreactor node (Raspberry Pi Zero W + shield).&lt;br&gt;&lt;br&gt;Open source under the MIT license.</source>
         <translation>&lt;b&gt;Clorela-OS %1&lt;/b&gt;&lt;br&gt;Sistema embebido del nodo fotobiorreactor WALCORG (Raspberry Pi Zero W + shield).&lt;br&gt;&lt;br&gt;Código abierto bajo la licencia MIT.</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="204"/>
+        <location filename="../mainwindow.cpp" line="258"/>
         <source>&lt;b&gt;WALCORG TERRAFORMING CORP.&lt;/b&gt;&lt;br&gt;Creating economies based on carbon capture.&lt;br&gt;&lt;br&gt;walcorg.com</source>
         <translation>&lt;b&gt;WALCORG TERRAFORMING CORP.&lt;/b&gt;&lt;br&gt;Creando economías basadas en la captura de carbono.&lt;br&gt;&lt;br&gt;walcorg.com</translation>
     </message>

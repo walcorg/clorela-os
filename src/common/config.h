@@ -5,7 +5,8 @@
 //   1. path given on the command line (--config)
 //   2. $CLORELA_CONFIG
 //   3. /etc/clorela/clorela.conf
-// Missing keys fall back to the defaults below. See data/clorela.conf.
+// Missing keys fall back to the defaults below. Relative paths are resolved
+// against the working directory. See data/clorela.conf.
 #pragma once
 
 #include <QList>

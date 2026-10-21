@@ -11,6 +11,7 @@
 
 namespace Ui { class MainWindow; }
 
+class AcqdClient;
 class GraphView;
 class NumericView;
 class QAction;
@@ -52,6 +53,7 @@ private slots:
 
 private:
     void updateStatusBar();
+    void updateAcquisitionLabel();
     void saveState(const QString &key, const QString &value);
 
     clorela::Config m_config;
@@ -59,6 +61,8 @@ private:
     GraphView *m_graph = nullptr;
     NumericView *m_numeric = nullptr;
     QLabel *m_networkLabel = nullptr;
+    QLabel *m_acqLabel = nullptr;
+    AcqdClient *m_acqd = nullptr;
     QTranslator m_translator;
     QString m_language = QStringLiteral("en");
     bool m_online = true;

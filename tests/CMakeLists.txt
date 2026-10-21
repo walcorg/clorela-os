@@ -16,3 +16,9 @@ clorela_add_test(tst_networkstatus SOURCES tst_networkstatus.cpp LIBS clorela_co
 if(CLORELA_BUILD_UI)
     clorela_add_test(tst_mainwindow SOURCES tst_mainwindow.cpp LIBS clorela_ui_core)
 endif()
+
+if(CLORELA_BUILD_ACQD)
+    clorela_add_test(tst_framebuffer SOURCES tst_framebuffer.cpp LIBS clorela_status)
+    clorela_add_test(tst_nodeclient SOURCES tst_nodeclient.cpp LIBS clorela_acq)
+    clorela_add_test(tst_acquisition SOURCES tst_acquisition.cpp LIBS clorela_acq)
+endif()

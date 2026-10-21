@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "acqdclient.h"
 #include "graphview.h"
 #include "networkstatus.h"
 #include "numericview.h"
@@ -10,6 +11,7 @@
 #include <QApplication>
 #include <QEvent>
 #include <QFileInfo>
+#include <QJsonObject>
 #include <QLabel>
 #include <QMessageBox>
 #include <QSettings>
@@ -54,12 +56,23 @@ MainWindow::MainWindow(const clorela::Config &config, QWidget *parent)
     // Items with no window behind them yet (see README, TODO list).
     const QList<QAction *> pending = {
         ui->actionLogIn, ui->actionLogOut, ui->actionUserData, ui->actionWalletAddress,
-        ui->actionStartAcquisition, ui->actionStopAcquisition,
         ui->actionConfigureWifi, ui->actionConfigureServer,
         ui->actionCheckUpdates, ui->actionConnectionProperties, ui->actionReportProblem,
     };
     for (QAction *a : pending)
         connect(a, &QAction::triggered, this, &MainWindow::showNotImplemented);
+    // Acquisition runs in clorela-acqd; the interface only sends start/stop.
+    m_acqd = new AcqdClient(m_config.controlSocket, this);
+    connect(ui->actionStartAcquisition, &QAction::triggered, this, [this] { m_acqd->request(QStringLiteral("start")); });
+    connect(ui->actionStopAcquisition, &QAction::triggered, this, [this] { m_acqd->request(QStringLiteral("stop")); });
+    connect(m_acqd, &AcqdClient::replyReceived, this, [this](const QJsonObject &request, const QJsonObject &reply) {
+        const QString cmd = request.value(QStringLiteral("cmd")).toString();
+        if (cmd != QLatin1String("status") && !reply.value(QStringLiteral("ok")).toBool())
+            statusBar()->showMessage(tr("Acquisition service: %1").arg(reply.value(QStringLiteral("error")).toString()), 5000);
+        if (cmd != QLatin1String("status"))
+            m_acqd->request(QStringLiteral("status")); // show the effect right away
+        updateAcquisitionLabel();
+    });
     connect(ui->actionAboutClorela, &QAction::triggered, this, &MainWindow::showAboutClorela);
     connect(ui->actionAboutWalcorg, &QAction::triggered, this, &MainWindow::showAboutWalcorg);
 
@@ -72,7 +85,11 @@ MainWindow::MainWindow(const clorela::Config &config, QWidget *parent)
         ui->actionStartAcquisition, ui->actionCheckUpdates, ui->actionReportProblem,
     };
 
+    m_acqLabel = new QLabel(this);
     m_networkLabel = new QLabel(this);
+    m_acqLabel->setContentsMargins(0, 0, 12, 0);
+    m_networkLabel->setContentsMargins(12, 0, 4, 0);
+    statusBar()->addPermanentWidget(m_acqLabel);
     statusBar()->addPermanentWidget(m_networkLabel);
 
     const QString savedView = m_state->value(QStringLiteral("view"), QStringLiteral("graph")).toString();
@@ -156,6 +173,8 @@ void MainWindow::checkNetwork()
 
 void MainWindow::refreshData()
 {
+    if (m_acqd)
+        m_acqd->request(QStringLiteral("status"));
     if (!m_store.isOpen())
         return;
     m_graph->setMeasurements(m_store.recentCycles(kGraphCycles));
@@ -176,6 +195,40 @@ void MainWindow::updateStatusBar()
     if (!m_networkLabel)
         return;
     m_networkLabel->setText(m_online ? tr("Online") : tr("Offline: restricted mode"));
+    updateAcquisitionLabel();
+}
+
+void MainWindow::updateAcquisitionLabel()
+{
+    if (!m_acqLabel || !m_acqd)
+        return;
+    if (!m_acqd->isReachable()) {
+        m_acqLabel->setText(tr("Acquisition service not running"));
+        return;
+    }
+    const QJsonObject s = m_acqd->lastStatus();
+    const QString state = s.value(QStringLiteral("state")).toString();
+    QString text;
+    if (state == QLatin1String("idle"))
+        text = tr("Acquisition stopped");
+    else if (state == QLatin1String("sampling"))
+        text = tr("Sampling...");
+    else if (state == QLatin1String("waiting"))
+        text = tr("Acquiring: cycle %1, next in %2 s")
+                   .arg(s.value(QStringLiteral("last_cycle")).toInteger())
+                   .arg(s.value(QStringLiteral("next_cycle_s")).toInt());
+    else if (state == QLatin1String("waiting_network"))
+        text = tr("Acquisition waiting for Wi-Fi");
+    else if (state == QLatin1String("sterilizing"))
+        text = tr("Sterilizing (UVC): %1 s left").arg(s.value(QStringLiteral("uv_s")).toInt());
+    else if (state == QLatin1String("error"))
+        text = tr("Acquisition error: %1").arg(s.value(QStringLiteral("detail")).toString());
+    m_acqLabel->setText(text);
+    // Start only makes sense when stopped; stop only when running.
+    const bool running = s.value(QStringLiteral("running")).toBool();
+    ui->actionStopAcquisition->setEnabled(running);
+    if (m_online || !m_onlineKnown)
+        ui->actionStartAcquisition->setEnabled(!running);
 }
 
 void MainWindow::saveState(const QString &key, const QString &value)

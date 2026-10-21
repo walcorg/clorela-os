@@ -122,6 +122,11 @@ Config Config::load(const QString &explicitPath)
     c.fullscreen = readBool(s, QStringLiteral("ui/fullscreen"), c.fullscreen);
     c.language = readString(s, QStringLiteral("ui/language"), c.language).toLower();
     c.uiStatePath = readString(s, QStringLiteral("ui/state"), c.uiStatePath);
+
+    // Relative paths (used by data/dev.conf) are relative to the working
+    // directory. QLocalServer would otherwise put a relative socket name in /tmp.
+    for (QString *path : {&c.databasePath, &c.controlSocket, &c.uiStatePath})
+        *path = QFileInfo(*path).absoluteFilePath();
     return c;
 }
 

@@ -6,6 +6,8 @@
 #include <QPainter>
 #include <QPainterPath>
 
+#include <cmath>
+
 using clorela::Measurement;
 
 GraphView::GraphView(QWidget *parent)
@@ -66,11 +68,16 @@ void GraphView::paintEvent(QPaintEvent *)
                tr("Mean transmission (sensors T0-T7), last %n cycle(s)", nullptr, int(m_points.size())));
     p.setFont(font());
 
-    // Axes. Values are 10-bit ADC counts (0-1023).
-    const double yMax = 1023.0;
+    // Axes. Values are 10-bit ADC counts (0-1023); the scale follows the
+    // data so slow trends stay visible.
+    double peak = 0;
+    for (const Point &pt : std::as_const(m_points))
+        peak = qMax(peak, qMax(pt.transmission, pt.dark));
+    const int step = peak > 400 ? 250 : peak > 160 ? 100 : peak > 80 ? 50 : 20;
+    const double yMax = qMin(1023.0, qMax(double(step), std::ceil(peak * 1.15 / step) * step));
     p.setPen(pal.color(QPalette::Mid));
     p.drawRect(area);
-    for (int v = 0; v <= 1000; v += 250) {
+    for (int v = 0; v <= yMax; v += step) {
         const int y = area.bottom() - int(v / yMax * area.height());
         p.drawLine(area.left() - 4, y, area.left(), y);
         p.drawText(QRect(0, y - 8, area.left() - 8, 16), Qt::AlignRight | Qt::AlignVCenter, QString::number(v));

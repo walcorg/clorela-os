@@ -41,4 +41,5 @@ if(CLORELA_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-install(FILES data/clorela.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/clorela)
+# FULL_ form: with prefix /usr this is /etc, as on the node.
+install(FILES data/clorela.conf DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/clorela)

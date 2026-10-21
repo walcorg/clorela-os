@@ -2,6 +2,10 @@
 
 **Clorela-OS** is the embedded Linux system of the **WALCORG** photobioreactor node. It runs on a Raspberry Pi Zero W fitted with the WALCORG shield. It drives one or two nodes, each a 1-litre cube holding a living culture of the microalga *Chlorella vulgaris* that captures CO2, and it measures the cultures with light.
 
+<p align="center">
+  <img src="docs/images/clorela-os-box.jpg" alt="Clorela-OS allows you to convert your CO2 captures into Codosin (CO2-in) tokens" width="720">
+</p>
+
 The node shines LEDs through the culture and reads how much light comes back with photoresistors. From those readings Clorela-OS follows how the culture grows. The same LEDs can also write any text into the culture as light, one ASCII character at a time, and the culture's optical "answer" can be recorded. Between cultures, UVC LEDs sterilize the empty cube.
 
 Clorela-OS is the piece that will let a node prove its CO2 capture and turn it into **Codosin (CO2in)** tokens on Polygon, through the [Anchor Protocol](https://github.com/walcorg/anchor-protocol).

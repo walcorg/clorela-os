@@ -25,6 +25,7 @@ Clorela-OS is the piece that will let a node prove its CO2 capture and turn it i
   - [Measuring the culture with light](#measuring-the-culture-with-light)
   - [Writing text into the culture: 8-LED ASCII encoding](#writing-text-into-the-culture-8-led-ascii-encoding)
   - [UVC sterilization](#uvc-sterilization)
+- [Hardware security: TROPIC01](#hardware-security-tropic01)
 - [System overview](#system-overview)
 - [What works today](#what-works-today)
 - [Install Clorela-OS on a microSD card](#install-clorela-os-on-a-microsd-card)
@@ -100,6 +101,44 @@ Four 275 nm UVC LEDs disinfect the empty cube between cultures. The firmware enf
 While a node is sterilizing, Clorela-OS skips it in the acquisition cycles, shows **STERILIZING** and the remaining seconds on the shield display, and stops any running acquisition first.
 
 > ⚠️ **UVC light (275 nm) damages eyes and skin.** Sterilize only an **empty** node with the **lid closed**. Never look at the LEDs while they are on.
+
+## Hardware security: TROPIC01
+
+Tokens are only worth something if nobody can mint them from invented data. That is the job of the **[TROPIC01](https://tropicsquare.com/tropic01)**, an open-architecture secure element by Tropic Square. It is the same chip used by the CiWi cold wallet, and it sits on the shield next to the Raspberry Pi.
+
+**What it does.** During provisioning, the chip generates its own key pair (P-256) in a protected slot. The private key **never leaves the chip**: the Pi can ask it to sign, but it can never read the key. The public key identifies the shield on-chain (`shieldId`).
+
+**How it is used: the [Anchor Protocol](https://github.com/walcorg/anchor-protocol).** For each closed measurement window:
+
+1. Clorela-OS builds a **CO2 capture receipt**. It contains the time window, the nodes measured, the CO2 claimed, a hash of the raw measurements, the optical challenge and the node's response to it, a strictly increasing counter, a random nonce from the chip's TRNG and a hash of the firmware.
+2. The **TROPIC01 on the shield signs** the receipt.
+3. The owner's **CiWi wallet**, which has its own TROPIC01, checks that signature and shows the receipt. It co-signs only after a **physical button press**.
+4. A contract on Polygon verifies both signatures, the counter and the physical capture limit of the shield. After a dispute window, it mints **Codosin (CO2in)**.
+
+```
+Clorela-OS ──receipt──▶ TROPIC01 (shield) ──signature──▶ CiWi (TROPIC01 + button) ──▶ Polygon contract ──▶ CO2in
+```
+
+| Guaranteed by the chips and the contract | Not guaranteed by them (handled by caps, reference cultures and review) |
+|---|---|
+| A claim comes from a registered shield bound to a registered CiWi | That the culture is alive or a sensor reading is true |
+| A receipt cannot be replayed, moved to another chain or redirected to another owner | Permanent sequestration of the captured CO2 |
+| Issuance per shield never exceeds its on-chain physical cap | |
+
+**On the shield v4.** The chip is connected to the Pi's SPI0: MOSI GPIO10, MISO GPIO9, SCLK GPIO11, chip select **GPIO25**, and its GPO line to GPIO5 (see [`docs/hardware-shield-v4.md`](docs/hardware-shield-v4.md)).
+
+**Status in Clorela-OS:**
+
+| Item | State |
+|---|---|
+| TROPIC01 in the shield v4 schematic | ✅ |
+| SPI0 enabled in the image, chip select on GPIO25, `/dev/spidev0.0` for the service user | ✅ (to check on hardware) |
+| `Signer` interface in `src/signer/` (public key, digest signing with low-s `r ‖ s`, TRNG bytes), contract enforced and tested | ✅ |
+| Driver for the real chip (`Tropic01Signer`), with Tropic Square's SDK packaged for Yocto | ⏳ |
+| Receipt builder (EIP-712 hashing, measurement Merkle root, optical challenge) | ⏳ |
+| Provisioning of the anchor key at the WALCORG bench | ⏳ |
+
+Today Clorela-OS ships `NullSigner`, which reports "not available", so nothing is signed yet. Acquisition works without the chip. The implementation steps and the open questions for Tropic Square are in [`docs/signer-tropic01.md`](docs/signer-tropic01.md).
 
 ## System overview
 

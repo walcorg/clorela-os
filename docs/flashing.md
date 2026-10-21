@@ -6,12 +6,12 @@ This guide is based on WALCORG's *Tutorial 1/5: How to install Clorela-OS on a m
 
 | Tutorial (alpha, 2021 image) | Now |
 |---|---|
-| Image `core-image-sato-raspberrypi0-wifi-…rootfs.rpi-sdimg` (480 MB) on Google Drive, linked from walcorg.com → DOWNLOADS | `clorela-image-raspberrypi0-wifi.wic.xz` on [GitHub Releases](https://github.com/walcorg/clorela-os/releases), with a `.wic.bmap` file and a SHA-256 checksum |
+| Image `core-image-sato-raspberrypi0-wifi-…rootfs.rpi-sdimg` (480 MB) on Google Drive, linked from walcorg.com → DOWNLOADS | `clorela-image-raspberrypi0-wifi.rootfs.wic.xz` on [GitHub Releases](https://github.com/walcorg/clorela-os/releases), with a `.wic.bmap` file and a SHA-256 checksum, or built yourself ([`building.md`](building.md)) |
 | Selected as `Clorela OS v1.zip` in Raspberry Pi Imager | Raspberry Pi Imager opens `.wic.xz` directly; no need to unzip |
 | Name "Chorella OS" | **Clorela-OS** |
 | "Powered by Google Compute Engine" | Built locally with Yocto on WALCORG's build server |
 
-The image built from this repository is not published yet: it comes with the Yocto phase. Until then, the alpha image on walcorg.com is the only one available. It does **not** contain the software in this repository.
+The image built from this repository is not published yet: it will be after its first build is tested on hardware. You can build it yourself with [`building.md`](building.md). Until then, the alpha image on walcorg.com is the only one available. It does **not** contain the software in this repository.
 
 ## You need
 
@@ -25,7 +25,7 @@ The image built from this repository is not published yet: it comes with the Yoc
 
 1. **Download the image.** Download it from [Releases](https://github.com/walcorg/clorela-os/releases). Optionally, check its integrity:
    ```bash
-   sha256sum -c clorela-image-raspberrypi0-wifi.wic.xz.sha256
+   sha256sum -c clorela-image-raspberrypi0-wifi.rootfs.wic.xz.sha256sum
    ```
 2. **Download Raspberry Pi Imager** from <https://www.raspberrypi.com/software/> (Download for Windows / macOS / Ubuntu for x86). On Raspberry Pi OS you can run `sudo apt install rpi-imager` instead.
 3. **Install it.** Open your downloads folder, double-click the installer and click **Install**.
@@ -41,7 +41,7 @@ The image built from this repository is not published yet: it comes with the Yoc
 On Linux you can also write the card from the command line with `bmaptool`, which is faster and checks the data:
 
 ```bash
-sudo bmaptool copy clorela-image-raspberrypi0-wifi.wic.xz /dev/sdX   # sdX = your card, check with lsblk
+sudo bmaptool copy clorela-image-raspberrypi0-wifi.rootfs.wic.xz /dev/sdX   # sdX = your card, check with lsblk
 ```
 
 ## First boot
@@ -49,11 +49,30 @@ sudo bmaptool copy clorela-image-raspberrypi0-wifi.wic.xz /dev/sdX   # sdX = you
 1. Mount the Pi on the shield and connect the nodes to the shield's USB-A node ports.
 2. Connect a monitor to the Pi's mini-HDMI port.
 3. Power everything through the **USB-C input of the shield**.
-4. The shield display shows **BOOTING**, then **READY**, and the interface opens full screen.
+4. The monitor shows the WALCORG splash with a progress bar. The shield display shows **BOOTING**, then **READY**, and the interface opens full screen.
 
 ### Wi-Fi
 
-Acquisition needs Wi-Fi. The **Configure → Configure Wi-Fi** window is not implemented yet. How the network is pre-configured on the card (SSID and password) will be documented together with the Yocto image. Without Wi-Fi, Clorela-OS starts in **restricted mode**: the interface can be browsed, and acquisition and account functions stay disabled.
+Acquisition needs Wi-Fi. Until the **Configure → Configure Wi-Fi** window exists, set the network up **before the first boot**:
+
+1. After writing the card, remove it and plug it back in. Your computer shows a small drive called **boot**.
+2. Create a text file named exactly `wpa_supplicant.conf` on that drive, with:
+   ```
+   ctrl_interface=/run/wpa_supplicant
+   update_config=1
+   country=MX
+
+   network={
+       ssid="YOUR_NETWORK_NAME"
+       psk="YOUR_PASSWORD"
+   }
+   ```
+   Use your two-letter country code. The Pi Zero W only connects to **2.4 GHz** networks.
+3. Eject the card and boot the Pi.
+
+On boot, Clorela-OS moves the file into the system and deletes it from the boot drive, so the password does not stay on the FAT partition. To change networks later, repeat the steps. The image also contains this template at `/usr/share/clorela/wpa_supplicant.conf.example`.
+
+Without Wi-Fi, Clorela-OS starts in **restricted mode**: the interface can be browsed, and acquisition and account functions stay disabled.
 
 ## Common issues with the Raspberry Pi Zero
 

@@ -6,7 +6,7 @@ The node shines LEDs through the culture and reads how much light comes back wit
 
 Clorela-OS is the piece that will let a node prove its CO2 capture and turn it into **Codosin (CO2in)** tokens on Polygon, through the [Anchor Protocol](https://github.com/walcorg/anchor-protocol).
 
-> **Status: under development.** The interface, the acquisition service, the status display and the signing hook build and are tested on a PC with a simulated node. The Yocto image for the Pi Zero W is the next phase. See [What works today](#what-works-today) and [`CHANGES.md`](CHANGES.md).
+> **Status: under development.** The interface, the acquisition service, the status display and the signing hook build and are tested on a PC with a simulated node. The Yocto layer for the Pi Zero W image (`meta-clorela`, with the WALCORG boot splash) passes BitBake's full parse; its first complete build is pending on the build server. See [What works today](#what-works-today) and [`CHANGES.md`](CHANGES.md).
 
 <p align="center">
   <img src="https://github.com/walcorg/node-routine/raw/main/docs/img/01-node-v4.5.png" alt="Photobioreactor node v4.5" height="300">
@@ -27,6 +27,7 @@ Clorela-OS is the piece that will let a node prove its CO2 capture and turn it i
 - [Using Clorela-OS](#using-clorela-os)
 - [Troubleshooting the Raspberry Pi Zero](#troubleshooting-the-raspberry-pi-zero)
 - [Build and run on a PC](#build-and-run-on-a-pc)
+- [Build the image (Yocto)](#build-the-image-yocto)
 - [Configuration](#configuration)
 - [Repository layout](#repository-layout)
 - [Roadmap](#roadmap)
@@ -143,13 +144,15 @@ The shield hardware is documented in [`docs/hardware-shield-v4.md`](docs/hardwar
 | Calibration (`C`) | ✅ | ⏳ |
 | TROPIC01 signing | — | ⏳ interface only |
 | Log in, profile, wallet address, server, updates, problem reports | — | ⏳ menu items present, windows not implemented |
-| Yocto image for the Pi Zero W | — | ⏳ next phase |
+| Boot splash on HDMI (WALCORG logo + progress bar) | — | ✅ psplash in `meta-clorela`; ⏳ to check on hardware |
+| Wi-Fi from a file on the boot partition | — | ✅ `wpa_supplicant.conf` imported on first boot |
+| Yocto image for the Pi Zero W | — | ✅ layer parses and resolves; ⏳ first full build on the R710 |
 
 ## Install Clorela-OS on a microSD card
 
 This follows WALCORG's *Tutorial 1/5: How to install Clorela-OS on a microSD* ([PDF](docs/tutorials/1-of-5-install-clorela-os-on-a-microsd.pdf)). The tutorial was written for the 2021 alpha image; the steps are the same for the new image. The full guide, with notes, is in [`docs/flashing.md`](docs/flashing.md).
 
-> **Image availability.** Images built from this repository will be published under [Releases](https://github.com/walcorg/clorela-os/releases) as `clorela-image-raspberrypi0-wifi.wic.xz`, with a SHA-256 checksum, once the Yocto phase is complete. The alpha image on [walcorg.com](https://walcorg.com) → DOWNLOADS (`core-image-sato`, 2021) is legacy and does not contain the software in this repository.
+> **Image availability.** Images built from this repository will be published under [Releases](https://github.com/walcorg/clorela-os/releases) as `clorela-image-raspberrypi0-wifi.rootfs.wic.xz`, with a SHA-256 checksum, after the first image is built and tested on hardware. You can also build it yourself: [Build the image](#build-the-image-yocto). The alpha image on [walcorg.com](https://walcorg.com) → DOWNLOADS (`core-image-sato`, 2021) is legacy and does not contain the software in this repository.
 
 **You need:** a Raspberry Pi Zero W, a branded microSD card (SanDisk or Panasonic recommended), a card reader, a good 5.1 V / 3 A power supply and a computer with internet access.
 
@@ -163,7 +166,7 @@ This follows WALCORG's *Tutorial 1/5: How to install Clorela-OS on a microSD* ([
 8. Click **WRITE** and wait until writing and verification finish.
 9. Remove the microSD card from the computer and **insert it into the Raspberry Pi Zero W**.
 
-**First boot.** Connect the shield and the HDMI monitor, then power the Pi through the shield's USB-C input. The shield display shows **BOOTING**, then **READY**, and the interface opens full screen. Without Wi-Fi it starts in **restricted mode**. The Wi-Fi window behind **Configure → Configure Wi-Fi** is not implemented yet; until it is, the Wi-Fi network is set up as described in [`docs/flashing.md`](docs/flashing.md#wi-fi).
+**First boot.** Connect the shield and the HDMI monitor, then power the Pi through the shield's USB-C input. The monitor shows the WALCORG splash with a progress bar, the shield display shows **BOOTING** and then **READY**, and the interface opens full screen. Without Wi-Fi it starts in **restricted mode**. To connect it, put a `wpa_supplicant.conf` with your network name and password on the card's boot partition before the first boot, as described in [`docs/flashing.md`](docs/flashing.md#wi-fi). The **Configure → Configure Wi-Fi** window is not implemented yet.
 
 ## Using Clorela-OS
 
@@ -278,7 +281,27 @@ Data goes to `run-dev/`. Other useful options:
 
 Build options: `-DCLORELA_BUILD_UI=OFF`, `-DCLORELA_BUILD_ACQD=OFF` and `-DCLORELA_BUILD_TESTS=OFF`. The acquisition service never links Qt Gui.
 
-**Building the Yocto image** on the Dell PowerEdge R710 build server (Ubuntu 26.04.1, Yocto Scarthgap 5.0 LTS, layers pinned with kas) will be documented here in the next phase.
+
+
+## Build the image (Yocto)
+
+The image is built with Yocto Project 5.0 "Scarthgap" (LTS) and [kas](https://kas.readthedocs.io), with every layer pinned to a commit. In short, on a Linux build server (WALCORG uses a Dell PowerEdge R710 with 12 GB of RAM):
+
+```bash
+pipx install kas                       # plus the Yocto host packages, see docs/building.md
+mkdir -p ~/yocto && cd ~/yocto
+git clone https://github.com/walcorg/clorela-os.git
+kas build clorela-os/kas/clorela.yml:clorela-os/kas/r710.yml
+# -> build/tmp/deploy/images/raspberrypi0-wifi/clorela-image-raspberrypi0-wifi.rootfs.wic.xz
+```
+
+The full guide covers host packages, the Ubuntu 26.04 and memory notes, the container alternative, rebuilding after code changes, what `meta-clorela` contains and what still has to be checked on the hardware: [`docs/building.md`](docs/building.md).
+
+The image boots with the WALCORG splash on HDMI (1920×1080) and a progress bar driven by systemd:
+
+<p align="center">
+  <img src="docs/images/boot-splash-1080p.png" alt="WALCORG boot splash" width="480">
+</p>
 
 ## Configuration
 
@@ -311,11 +334,14 @@ Build options: `-DCLORELA_BUILD_UI=OFF`, `-DCLORELA_BUILD_ACQD=OFF` and `-DCLORE
 | `tests/` | Unit tests (QtTest) |
 | `data/` | Default and development configuration |
 | `docs/` | Hardware, flashing guide, signer notes, legacy v14 notes, images, tutorial PDF |
-| `meta-clorela/`, `kas/` | Yocto layer and pinned build configuration (next phase) |
+| `meta-clorela/` | Yocto layer: distro, image, application recipe, systemd units, boot splash, `config.txt` |
+| `kas/` | Pinned layer set (`clorela.yml`), build-server limits (`r710.yml`), development additions (`debug.yml`) |
+| `data/branding/` | WALCORG logo used by the boot splash |
 
 ## Roadmap
 
-- **Yocto image** (`meta-clorela`, kas with pinned layers): Raspberry Pi Zero W, Qt 6 on `linuxfb`, I2C, SPI, USB host mode, systemd services, `wic.xz` releases.
+- **First image build and hardware test** on the R710; publish `wic.xz` releases with checksums.
+- **Grow the root partition** to the whole microSD card on first boot.
 - **ASCII encoding routine** in `clorela-acqd`: text or challenge → `K` per character → stored responses. This will be the basis of the Anchor Protocol optical challenge.
 - **Sterilization and calibration** items in the interface, with safety confirmations.
 - **Account, Wi-Fi, server and update windows** behind the existing menus.

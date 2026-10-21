@@ -1,6 +1,6 @@
 # Signing extension point: TROPIC01
 
-**Status: interface only.** Shield v4.1 has no TROPIC01 and Clorela-OS ships only `NullSigner`, which answers `NotAvailable` to everything. Nothing in the acquisition path depends on signing today.
+**Status: interface only.** The shield v4 schematic includes the TROPIC01 (see [hardware-shield-v4.md](hardware-shield-v4.md)), but there is no driver yet: Clorela-OS ships only `NullSigner`, which answers `NotAvailable` to everything. Nothing in the acquisition path depends on signing today.
 
 This page explains what the interface is for, what an implementation must guarantee, and the steps left to implement it, so that the [Anchor Protocol](https://github.com/walcorg/anchor-protocol) can be developed against it without waiting for the hardware.
 
@@ -53,8 +53,8 @@ backend=none        # "tropic01" once it exists
 
 ## Implementation steps (future)
 
-1. **Hardware.** Route the TROPIC01 on the shield over **SPI**, not I2C. Reuse the Tropic Square TS1501 Raspberry Pi shield layout: chip-select jumper and decoupling. The SPI bus, chip select and any interrupt pin are **[TO VERIFY]** until the shield revision exists. Sensors and the OLED stay on I2C.
-2. **Image.** Enable SPI in `config.txt` (`dtparam=spi=on`) and add the `spidev` device to the image (phase 4 recipe).
+1. **Hardware.** The shield v4 schematic puts the TROPIC01 on **SPI0**: MOSI GPIO10, MISO GPIO9, SCLK GPIO11. Chip select is **GPIO25** (header pin 22, not a hardware CE line) and the chip's GPO goes to **GPIO5** (pin 29). Sensors and the OLED stay on I2C. These pins must still be checked on an assembled board **[TO VERIFY]**.
+2. **Image.** Enable SPI0 in `config.txt` with a GPIO chip select on GPIO25 (for example the `spi0-1cs` overlay with `cs0_pin=25`) and add `spidev` to the image (phase 4 recipe).
 3. **SDK.** Package Tropic Square's host SDK as a Yocto recipe. **[TO VERIFY]**: the name, repository, license and pinned version of that SDK. The secure session with the chip must be established with the shield's pairing key.
 4. **Backend.** Add `Tropic01Signer` in `src/signer/` implementing the three `do…` methods. In `createSigner()`, return it when `signer/backend=tropic01`.
 5. **Provisioning.** This runs at the WALCORG bench, not on the node. It reads and validates the factory X.509 certificate, generates the anchor key in a dedicated ECC slot, and locks the slot to the pairing key.

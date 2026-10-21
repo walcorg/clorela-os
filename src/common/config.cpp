@@ -119,6 +119,8 @@ Config Config::load(const QString &explicitPath)
     c.displayI2cBus = readInt(s, QStringLiteral("display/i2c_bus"), c.displayI2cBus);
     c.displayAddress = readInt(s, QStringLiteral("display/address"), c.displayAddress);
 
+    c.signerBackend = readString(s, QStringLiteral("signer/backend"), c.signerBackend).toLower();
+
     c.fullscreen = readBool(s, QStringLiteral("ui/fullscreen"), c.fullscreen);
     c.language = readString(s, QStringLiteral("ui/language"), c.language).toLower();
     c.uiStatePath = readString(s, QStringLiteral("ui/state"), c.uiStatePath);

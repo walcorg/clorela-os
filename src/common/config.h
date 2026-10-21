@@ -34,6 +34,10 @@ struct Config
     int displayI2cBus = 1;                              // [TO VERIFY]
     int displayAddress = 0x3C;                          // [TO VERIFY] 0x3C or 0x3D
 
+    // [signer] secure element used to sign capture receipts (Anchor Protocol).
+    // Only "none" exists today; see docs/signer-tropic01.md.
+    QString signerBackend = QStringLiteral("none");
+
     // [ui]
     bool fullscreen = true;
     QString language = QStringLiteral("es");            // "es", "en" or "fr"

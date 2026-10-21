@@ -8,6 +8,7 @@
 #include "config.h"
 #include "controlserver.h"
 #include "i2cnodetransport.h"
+#include "signer.h"
 #include "simulatednode.h"
 #include "statusdisplay.h"
 
@@ -87,6 +88,12 @@ int main(int argc, char *argv[])
             .arg(QStringLiteral(CLORELA_VERSION),
                  config.sourcePath.isEmpty() ? QStringLiteral("(defaults)") : config.sourcePath,
                  transport->name(), config.databasePath));
+
+    // Signing is not used yet; report what the Anchor Protocol would get.
+    const auto signer = clorela::createSigner(config);
+    log(QStringLiteral("signer: %1 (%2)")
+            .arg(signer->name(), signer->isAvailable() ? QStringLiteral("available")
+                                                       : QStringLiteral("not available, receipts are not signed")));
 
     // SIGTERM/SIGINT -> clean shutdown (LEDs off, database closed).
     if (::socketpair(AF_UNIX, SOCK_STREAM, 0, g_signalFd) == 0) {

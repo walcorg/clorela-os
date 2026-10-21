@@ -41,6 +41,7 @@ private slots:
         QCOMPARE(c.displayBackend, QStringLiteral("ssd1306"));
         QCOMPARE(c.displayAddress, 0x3C);
         QCOMPARE(c.language, QStringLiteral("es"));
+        QCOMPARE(c.signerBackend, QStringLiteral("none"));
         QVERIFY(c.requireNetwork);
         QVERIFY(c.fullscreen);
     }

@@ -53,6 +53,7 @@ QJsonObject ControlServer::snapshotToJson(const ServiceSnapshot &s, const Config
     o[QStringLiteral("next_cycle_s")] = s.nextCycleInS;
     o[QStringLiteral("uv_s")] = s.uvSecondsRemaining;
     o[QStringLiteral("sensor")] = config.sensor;
+    o[QStringLiteral("signer")] = config.signerBackend;
     o[QStringLiteral("nodes")] = nodes;
     o[QStringLiteral("version")] = QStringLiteral(CLORELA_VERSION);
     return o;

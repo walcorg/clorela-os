@@ -1,4 +1,5 @@
 add_subdirectory(common)
+add_subdirectory(signer)
 
 if(CLORELA_BUILD_ACQD)
     add_subdirectory(hw)

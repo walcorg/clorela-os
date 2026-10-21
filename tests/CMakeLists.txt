@@ -12,6 +12,7 @@ endfunction()
 clorela_add_test(tst_config SOURCES tst_config.cpp LIBS clorela_common)
 clorela_add_test(tst_store SOURCES tst_store.cpp LIBS clorela_common)
 clorela_add_test(tst_networkstatus SOURCES tst_networkstatus.cpp LIBS clorela_common)
+clorela_add_test(tst_signer SOURCES tst_signer.cpp LIBS clorela_signer)
 
 if(CLORELA_BUILD_UI)
     clorela_add_test(tst_mainwindow SOURCES tst_mainwindow.cpp LIBS clorela_ui_core)

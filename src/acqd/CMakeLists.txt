@@ -5,6 +5,7 @@ qt_add_library(clorela_acq STATIC
     i2cnodetransport.h
     simulatednode.h simulatednode.cpp
     nodeclient.h nodeclient.cpp
+    lauraencoding.h lauraencoding.cpp
     acquisitionservice.h acquisitionservice.cpp
     controlserver.h controlserver.cpp
 )

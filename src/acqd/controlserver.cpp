@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include <QLocalServer>
 #include <QLocalSocket>
+#include <QThread>
 
 namespace clorela {
 
@@ -92,10 +93,61 @@ QJsonObject ControlServer::handle(const QJsonObject &request)
         return reply;
     }
 
+    if (cmd == QLatin1String("laura_calibrate") || cmd == QLatin1String("laura_challenge"))
+        return handleLaura(cmd, request, reply);
+
     QJsonObject err;
     err[QStringLiteral("ok")] = false;
     err[QStringLiteral("error")] = QStringLiteral("unknown command '%1'").arg(cmd);
     return err;
+}
+
+QJsonObject ControlServer::handleLaura(const QString &cmd, const QJsonObject &request, QJsonObject reply)
+{
+    auto fail = [](const QString &message) {
+        QJsonObject e;
+        e[QStringLiteral("ok")] = false;
+        e[QStringLiteral("error")] = message;
+        return e;
+    };
+    const int address = request.value(QStringLiteral("node")).toInt(-1);
+    if (!m_config.nodeAddresses.contains(address))
+        return fail(QStringLiteral("node must be one of the configured addresses"));
+
+    std::function<QJsonObject()> job;
+    if (cmd == QLatin1String("laura_calibrate")) {
+        job = [svc = m_service, address] { return svc->lauraCalibrate(address); };
+    } else {
+        const QString idHex = request.value(QStringLiteral("challenge_id")).toString();
+        const QByteArray id = QByteArray::fromHex(idHex.toLatin1());
+        if (idHex.isEmpty() || idHex.size() % 2 || id.size() * 2 != idHex.size()
+            || id.size() > 32)
+            return fail(QStringLiteral("challenge_id must be 1-32 bytes in hex"));
+        const QJsonArray arr = request.value(QStringLiteral("levels")).toArray();
+        if (arr.size() != node::kVisibleLeds)
+            return fail(QStringLiteral("levels must have %1 values").arg(node::kVisibleLeds));
+        NodeClient::Levels levels{};
+        for (int i = 0; i < arr.size(); ++i) {
+            const double v = arr.at(i).toDouble(-1);
+            if (!arr.at(i).isDouble() || v < 0 || v > node::kMaxLevel || v != int(v))
+                return fail(QStringLiteral("levels must be integers 0-%1").arg(node::kMaxLevel));
+            levels[i] = quint16(v);
+        }
+        job = [svc = m_service, address, id, levels] { return svc->lauraChallenge(address, id, levels); };
+    }
+
+    // The node must answer before we reply, so wait for the service thread.
+    QJsonObject result;
+    if (m_service->thread() == QThread::currentThread())
+        result = job();
+    else
+        QMetaObject::invokeMethod(m_service, [&] { result = job(); }, Qt::BlockingQueuedConnection);
+
+    if (!result.value(QStringLiteral("ok")).toBool())
+        return fail(result.value(QStringLiteral("error")).toString());
+    result.remove(QStringLiteral("ok"));
+    reply[QStringLiteral("laura")] = result;
+    return reply;
 }
 
 void ControlServer::onNewConnection()

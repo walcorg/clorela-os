@@ -24,6 +24,7 @@ Clorela-OS is the piece that will let a node prove its CO2 capture and turn it i
 - [How the node works](#how-the-node-works)
   - [Measuring the culture with light](#measuring-the-culture-with-light)
   - [Writing text into the culture: 8-LED ASCII encoding](#writing-text-into-the-culture-8-led-ascii-encoding)
+  - [Laura Encoding: the culture's optical fingerprint](#laura-encoding-the-cultures-optical-fingerprint)
   - [UVC sterilization](#uvc-sterilization)
 - [Hardware security: TROPIC01](#hardware-security-tropic01)
 - [System overview](#system-overview)
@@ -78,7 +79,7 @@ LEDs   76543210  76543210  76543210  76543210  76543210  76543210  76543210
        01010111  01000001  01001100  01000011  01001111  01010010  01000111
 ```
 
-Light from each pattern crosses the living culture before it reaches the sensors, so the sequence of readings is an optical response of that culture to that text. The idea dates back to node v4.3. It is the basis of the **optical challenge** in the Anchor Protocol: the network sends a challenge, the node "writes" it into the culture, and the recorded response helps show that a real culture is being measured rather than replayed data.
+Light from each pattern crosses the living culture before it reaches the sensors, so the sequence of readings is an optical response of that culture to that text. The idea dates back to node v4.3. Its generalization, with any intensity on each of the 12 LEDs, is [Laura Encoding](#laura-encoding-the-cultures-optical-fingerprint), the optical challenge of the Anchor Protocol.
 
 The firmware exposes two commands for this (see [node-routine](https://github.com/walcorg/node-routine#i2c-protocol)):
 
@@ -87,7 +88,17 @@ The firmware exposes two commands for this (see [node-routine](https://github.co
 | `K, byte` | Shows one byte on LEDs 0–7, waits for the light to settle, **measures the 16 sensors** and keeps the pattern on |
 | `B, speed, text` | **Plays** up to 29 characters on LEDs 0–7, at a chosen speed in ms per character. Demo mode only: no measurement |
 
-Clorela-OS already stores this kind of reading (record type `byte`). The encoding routine itself, including the challenge format, is still to be defined and is listed in the [Roadmap](#roadmap).
+Clorela-OS already stores this kind of reading (record type `byte`). A routine that sends a whole text from Clorela-OS is still listed in the [Roadmap](#roadmap).
+
+### Laura Encoding: the culture's optical fingerprint
+
+The living culture between the LEDs and the sensors behaves like a **16 × 12 matrix *M***: how much light of each LED reaches each sensor. It depends on the biomass, on how the cells are spread and on the geometry of each node, so every culture has its own. A reading with LED intensities **x** is close to `y = b + M · x`, where *b* is the dark baseline.
+
+- `C` **measures the fingerprint** *M* (each LED on alone, minus the dark baseline).
+- `X` **answers a challenge**: the server sends a fresh, random intensity pattern for the 12 LEDs, and the node lights it and reads the 16 sensors.
+- Clorela-OS relays both and returns a **record with a SHA-256 digest**, which the TROPIC01 will sign. The server keeps *M*, checks that the answer matches `b + M · x` within the noise, and checks that *M* changes over time the way one growing biomass would.
+
+This is **authentication of a physical culture, not encryption**. It stops replayed recordings, data copied from another node and readings edited after signing. It does **not** stop someone who has taken over the Raspberry Pi and learned *M*; the Anchor Protocol's caps, reference cultures and review cover that case. The protocol, the math, the results on the simulated node and the limits are in [`docs/laura-encoding.md`](docs/laura-encoding.md). A server-side reference implementation is in [`tools/laura/`](tools/laura/).
 
 ### UVC sterilization
 
@@ -184,7 +195,8 @@ The shield hardware is documented in [`docs/hardware-shield-v4.md`](docs/hardwar
 | Status display (BOOTING, SAMPLING, STERILIZING…) | — | ✅ SSD1306 driver; display not yet on the shield schematic |
 | UVC sterilization | ✅ | ✅ in the service (control socket); ⏳ no menu item yet |
 | 8-LED ASCII encoding (`K`, `B`) | ✅ | ⏳ record type ready; routine and challenge format to define |
-| Calibration (`C`) | ✅ | ⏳ |
+| Calibration (`C`) | ✅ | ✅ control socket (`laura_calibrate`); ⏳ no menu item yet |
+| Laura Encoding: optical challenge (`X`), SHA-256 records for signing | ✅ firmware 0x02 | ✅ control socket (`laura_challenge`), reference server in `tools/laura/`; ⏳ server service, TROPIC01 signature |
 | TROPIC01 signing | — | ⏳ interface only |
 | Log in, profile, wallet address, server, updates, problem reports | — | ⏳ menu items present, windows not implemented |
 | Boot splash on HDMI (WALCORG logo + progress bar) | — | ✅ psplash in `meta-clorela`; ⏳ to check on hardware |
@@ -272,6 +284,18 @@ echo '{"cmd":"stop_uv"}' | socat - UNIX-CONNECT:/run/clorela/acqd.sock
 ```
 
 Remember: **empty node, lid closed.**
+
+### Laura Encoding from a terminal
+
+The server will send these requests; for testing you can send them by hand:
+
+```bash
+echo '{"cmd":"laura_calibrate","node":16}' | socat - UNIX-CONNECT:/run/clorela/acqd.sock
+echo '{"cmd":"laura_challenge","node":16,"challenge_id":"a1b2c3d4","levels":[800,0,1200,0,0,300,0,0,900,0,0,500]}' \
+  | socat - UNIX-CONNECT:/run/clorela/acqd.sock
+```
+
+`node` is the I2C address in decimal (16 = 0x10). On a PC with the simulated node, [`tools/laura/laura_server_reference.py`](tools/laura/README.md) runs the whole protocol, including four attacks.
 
 ## Troubleshooting the Raspberry Pi Zero
 
@@ -370,11 +394,12 @@ The image boots with the WALCORG splash on HDMI (1920×1080) and a progress bar 
 | Path | Contents |
 |---|---|
 | `src/ui/` | `clorela-ui`: main window, views, translations (`translations/*.ts`) |
-| `src/acqd/` | `clorela-acqd`: node protocol, simulated node, acquisition cycle, control socket |
+| `src/acqd/` | `clorela-acqd`: node protocol, simulated node, acquisition cycle, control socket, Laura Encoding records |
 | `src/status/` | Shield display driver (SSD1306) and `clorela-status` |
 | `src/signer/` | TROPIC01 signing extension point |
 | `src/common/`, `src/hw/` | Configuration, SQLite store, network check, Linux I2C access |
 | `tests/` | Unit tests (QtTest) |
+| `tools/laura/` | Laura Encoding server-side reference (Python; not installed on the node) |
 | `data/` | Default and development configuration |
 | `docs/` | Hardware, flashing guide, signer notes, legacy v14 notes, images, tutorial PDF |
 | `meta-clorela/` | Yocto layer: distro, image, application recipe, systemd units, boot splash, `config.txt` |
@@ -385,7 +410,8 @@ The image boots with the WALCORG splash on HDMI (1920×1080) and a progress bar 
 
 - **First image build and hardware test** on the R710; publish `wic.xz` releases with checksums.
 - **Grow the root partition** to the whole microSD card on first boot.
-- **ASCII encoding routine** in `clorela-acqd`: text or challenge → `K` per character → stored responses. This will be the basis of the Anchor Protocol optical challenge.
+- **Laura Encoding on real hardware**: measure noise, drift and settle time on a real culture; server service for calibrations and challenges; authenticated Pi ↔ server transport; store the records locally for audit; commit them into the capture receipt. See [`docs/laura-encoding.md`](docs/laura-encoding.md#9-still-to-do).
+- **ASCII text routine** in `clorela-acqd`: text → `K` per character → stored responses.
 - **Sterilization and calibration** items in the interface, with safety confirmations.
 - **Account, Wi-Fi, server and update windows** behind the existing menus.
 - **TROPIC01 signer** and capture receipts for the [Anchor Protocol](https://github.com/walcorg/anchor-protocol).

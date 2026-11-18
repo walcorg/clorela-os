@@ -104,11 +104,12 @@ std::optional<NodeClient::Readings> NodeClient::page(int number)
     return parsePage(rx);
 }
 
-std::optional<NodeClient::Readings> NodeClient::runAndRead(char letter, const QByteArray &args, Status *after)
+std::optional<NodeClient::Readings> NodeClient::runAndRead(char letter, const QByteArray &args, Status *after,
+                                                          int timeoutMs)
 {
     if (!command(letter, args))
         return std::nullopt;
-    const auto s = waitIdle();
+    const auto s = waitIdle(timeoutMs);
     if (!s)
         return std::nullopt;
     if (s->state == StateUv) {
@@ -132,6 +133,39 @@ std::optional<NodeClient::Readings> NodeClient::measureLed(int led, Status *afte
         return std::nullopt;
     }
     return runAndRead(CmdSingleLed, QByteArray(1, char(led)), after);
+}
+
+std::optional<NodeClient::Readings> NodeClient::measurePattern(const Levels &levels, Status *after)
+{
+    QByteArray args;
+    for (quint16 v : levels) {
+        if (v > kMaxLevel) {
+            m_lastError = QStringLiteral("LED level %1 out of range 0-%2").arg(v).arg(kMaxLevel);
+            return std::nullopt;
+        }
+        args.append(char(v & 0xFF));
+        args.append(char(v >> 8));
+    }
+    return runAndRead(CmdPattern, args, after);
+}
+
+std::optional<NodeClient::Calibration> NodeClient::calibrate(Status *after)
+{
+    // 13 readings; in the sensitive range each one waits 5 ms per channel.
+    if (!runAndRead(CmdCalibrate, QByteArray(), after, 30000))
+        return std::nullopt;
+    Calibration c;
+    const auto dark = page(PageDarkBaseline);
+    if (!dark)
+        return std::nullopt;
+    c.dark = *dark;
+    for (int led = 0; led < kVisibleLeds; ++led) {
+        const auto r = page(PageFirstLed + led);
+        if (!r)
+            return std::nullopt;
+        c.led[led] = *r;
+    }
+    return c;
 }
 
 bool NodeClient::allOff()

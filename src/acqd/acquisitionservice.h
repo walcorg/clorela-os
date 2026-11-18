@@ -11,11 +11,13 @@
 #pragma once
 
 #include "config.h"
+#include "nodeclient.h"
 #include "measurement.h"
 #include "measurementstore.h"
 #include "nodetransport.h"
 
 #include <QElapsedTimer>
+#include <QJsonObject>
 #include <QList>
 #include <QMetaType>
 #include <QObject>
@@ -25,6 +27,8 @@
 class QTimer;
 
 namespace clorela {
+
+class Signer;
 
 struct ServiceSnapshot
 {
@@ -63,6 +67,8 @@ public:
 
     // For tests: replace the routing-table check.
     void setNetworkProbe(NetworkProbe probe) { m_networkProbe = std::move(probe); }
+    // Signer used for Laura Encoding records (not owned). Null = unsigned.
+    void setSigner(Signer *signer) { m_signer = signer; }
     ServiceSnapshot snapshot() const { return m_snapshot; }
     QString storeError() const { return m_storeError; }
 
@@ -76,6 +82,11 @@ public slots:
     void stopSterilization();
     // Runs one cycle now (ignores the interval). Returns the stored readings.
     QList<clorela::Measurement> runCycle();
+    // Laura Encoding (docs/laura-encoding.md). Run in the service thread, between
+    // cycles; return {"ok":true,...record} or {"ok":false,"error":...}.
+    QJsonObject lauraCalibrate(int address);
+    QJsonObject lauraChallenge(int address, const QByteArray &challengeId,
+                               const clorela::NodeClient::Levels &levels);
     void shutdown();
 
 signals:
@@ -97,6 +108,7 @@ private:
     QElapsedTimer m_sinceLastCycle;
     QElapsedTimer m_sinceUvPoll;
     NetworkProbe m_networkProbe;
+    Signer *m_signer = nullptr;
     ServiceSnapshot m_snapshot;
 };
 

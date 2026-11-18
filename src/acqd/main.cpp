@@ -112,6 +112,7 @@ int main(int argc, char *argv[])
     QThread worker;
     worker.setObjectName(QStringLiteral("acquisition"));
     auto *service = new clorela::AcquisitionService(config, std::move(transport));
+    service->setSigner(signer.get()); // NullSigner today: records carry a digest, no signature
     service->moveToThread(&worker);
     QObject::connect(&worker, &QThread::finished, service, &QObject::deleteLater);
 

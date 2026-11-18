@@ -21,7 +21,7 @@ private slots:
         const auto s = c.status();
         QVERIFY(s);
         QCOMPARE(s->state, node::StateIdle);
-        QCOMPARE(s->firmwareVersion, uint8_t(1));
+        QCOMPARE(s->firmwareVersion, node::kFirmwarePattern);
         QCOMPARE(s->address, uint8_t(0x10));
         QCOMPARE(s->error, node::ErrNone);
     }

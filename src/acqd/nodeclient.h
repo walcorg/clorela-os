@@ -32,6 +32,16 @@ public:
     // High-level operations used by the acquisition cycle.
     std::optional<Readings> darkCheck(node::Status *after = nullptr);
     std::optional<Readings> measureLed(int led, node::Status *after = nullptr);
+    // 'X': each visible LED at its own intensity (0-4095), then all off.
+    using Levels = std::array<quint16, node::kVisibleLeds>;
+    std::optional<Readings> measurePattern(const Levels &levels, node::Status *after = nullptr);
+    // 'C': dark baseline (page 1) and each LED alone (pages 2-13).
+    struct Calibration
+    {
+        Readings dark{};
+        std::array<Readings, node::kVisibleLeds> led{};
+    };
+    std::optional<Calibration> calibrate(node::Status *after = nullptr);
     bool allOff();
     bool startUv(int seconds);
     bool stopUv();
@@ -41,7 +51,8 @@ public:
     static Readings parsePage(const QByteArray &bytes);
 
 private:
-    std::optional<Readings> runAndRead(char letter, const QByteArray &args, node::Status *after);
+    std::optional<Readings> runAndRead(char letter, const QByteArray &args, node::Status *after,
+                                       int timeoutMs = 10000);
 
     NodeTransport *m_transport;
     int m_address;

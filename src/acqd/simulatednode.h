@@ -32,6 +32,8 @@ public:
     // Test hooks.
     void setLightLeak(int address, bool leak);
     double opticalDensity(int address) const;
+    // Stops the slow growth (keeps M fixed) for deterministic tests.
+    void setGrowth(int address, bool grow);
     int commandsReceived(int address) const;
 
 private:
@@ -43,6 +45,10 @@ private:
         char lastCommand = 0;
         uint8_t error = node::ErrNone;
         uint16_t ledMask = 0;           // visible LEDs 0-11 currently on
+        bool usePattern = false;        // 'X': per-LED levels instead of ledMask
+        std::array<uint16_t, node::kVisibleLeds> pattern{};
+        // Optical coupling LED -> sensor position, unique per node (its "fingerprint").
+        std::array<std::array<double, node::kVisibleLeds>, 8> coupling{};
         bool readPage = false;          // next read returns a data page
         uint8_t page = 0;
         std::array<std::array<uint16_t, 16>, 15> pages{};
@@ -52,6 +58,7 @@ private:
         double od = 0.35;               // optical density of the culture
         bool lightLeak = false;
         int commands = 0;
+        bool grow = true;
     };
 
     void execute(Node &n, const QByteArray &data);

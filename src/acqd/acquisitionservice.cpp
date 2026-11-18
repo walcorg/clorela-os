@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "acquisitionservice.h"
 
+#include "lauraencoding.h"
 #include "networkstatus.h"
 #include "nodeclient.h"
 
@@ -266,6 +267,70 @@ QList<Measurement> AcquisitionService::runCycle()
     }
     publish();
     return batch;
+}
+
+namespace {
+QJsonObject lauraError(const QString &message)
+{
+    QJsonObject o;
+    o[QStringLiteral("ok")] = false;
+    o[QStringLiteral("error")] = message;
+    return o;
+}
+} // namespace
+
+QJsonObject AcquisitionService::lauraCalibrate(int address)
+{
+    if (!m_config.nodeAddresses.contains(address))
+        return lauraError(QStringLiteral("node %1 is not configured").arg(hex(address)));
+    NodeClient client(m_transport.get(), address);
+    node::Status after;
+    const auto cal = client.calibrate(&after);
+    if (!cal)
+        return lauraError(client.lastError());
+    laura::CalibrationRecord rec;
+    rec.node = address;
+    rec.data = *cal;
+    rec.flags = after.flags;
+    rec.firmware = after.firmwareVersion;
+    rec.timestampMs = QDateTime::currentMSecsSinceEpoch();
+    laura::sign(&rec, m_signer);
+    QJsonObject o = laura::toJson(rec);
+    o[QStringLiteral("ok")] = true;
+    return o;
+}
+
+QJsonObject AcquisitionService::lauraChallenge(int address, const QByteArray &challengeId,
+                                               const NodeClient::Levels &levels)
+{
+    if (!m_config.nodeAddresses.contains(address))
+        return lauraError(QStringLiteral("node %1 is not configured").arg(hex(address)));
+    if (challengeId.isEmpty() || challengeId.size() > laura::kMaxChallengeIdBytes)
+        return lauraError(QStringLiteral("challenge_id must be 1-%1 bytes").arg(laura::kMaxChallengeIdBytes));
+    NodeClient client(m_transport.get(), address);
+    const auto s = client.status();
+    if (!s)
+        return lauraError(client.lastError());
+    if (s->firmwareVersion < node::kFirmwarePattern)
+        return lauraError(QStringLiteral("node %1 runs firmware 0x%2 without 'X'; update node-routine")
+                              .arg(hex(address))
+                              .arg(s->firmwareVersion, 2, 16, QLatin1Char('0')));
+    node::Status after;
+    const auto r = client.measurePattern(levels, &after);
+    if (!r)
+        return lauraError(client.lastError());
+    laura::ChallengeResponse resp;
+    resp.node = address;
+    resp.challengeId = challengeId;
+    resp.levels = levels;
+    resp.readings = *r;
+    resp.flags = after.flags;
+    resp.firmware = after.firmwareVersion;
+    resp.timestampMs = QDateTime::currentMSecsSinceEpoch();
+    laura::sign(&resp, m_signer);
+    QJsonObject o = laura::toJson(resp);
+    o[QStringLiteral("ok")] = true;
+    return o;
 }
 
 void AcquisitionService::publish()

@@ -14,6 +14,18 @@ SimulatedNodeBus::SimulatedNodeBus(const QList<int> &addresses, unsigned seed)
     for (int a : addresses) {
         Node n;
         n.address = a;
+        // Each node gets its own geometry: LED k faces sensor k on the opposite
+        // wall, neighbours get less, and every pair varies by up to +-15 %. A
+        // separate generator keeps the noise sequence of m_rng unchanged.
+        std::mt19937 geo(seed ^ (unsigned(a) * 2654435761u));
+        std::uniform_real_distribution<double> spread(0.85, 1.15);
+        for (int pos = 0; pos < 8; ++pos) {
+            for (int led = 0; led < kVisibleLeds; ++led) {
+                const int distance = std::abs((led % 8) - pos);
+                const double geometry = distance == 0 ? 1.0 : 0.35 / distance;
+                n.coupling[pos][led] = geometry * spread(geo);
+            }
+        }
         m_nodes.insert(a, n);
     }
 }
@@ -32,6 +44,12 @@ void SimulatedNodeBus::setLightLeak(int address, bool leak)
 {
     if (Node *n = find(address))
         n->lightLeak = leak;
+}
+
+void SimulatedNodeBus::setGrowth(int address, bool grow)
+{
+    if (Node *n = find(address))
+        n->grow = grow;
 }
 
 double SimulatedNodeBus::opticalDensity(int address) const
@@ -90,12 +108,11 @@ std::array<uint16_t, 16> SimulatedNodeBus::measure(Node &n)
         const bool transmission = ch >= 8;
         const int position = ch % 8;
         for (int led = 0; led < kVisibleLeds; ++led) {
-            if (!(n.ledMask & (1 << led)))
+            const double level = n.usePattern ? n.pattern[led] / double(kMaxLevel)
+                                              : ((n.ledMask & (1 << led)) ? intensity : 0.0);
+            if (level <= 0.0)
                 continue;
-            // LED k faces sensor k on the opposite wall; neighbours get less.
-            const int distance = std::abs((led % 8) - position);
-            const double geometry = distance == 0 ? 1.0 : 0.35 / distance;
-            const double base = (led >= 8 ? 700.0 : 900.0) * intensity * geometry;
+            const double base = (led >= 8 ? 700.0 : 900.0) * level * n.coupling[position][led];
             if (transmission)
                 value += base * qExp(-n.od * 2.0);           // Beer-Lambert through 1 L cube
             else
@@ -103,7 +120,8 @@ std::array<uint16_t, 16> SimulatedNodeBus::measure(Node &n)
         }
         v[ch] = uint16_t(std::clamp(value * gain, 0.0, 1023.0));
     }
-    n.od = std::min(3.0, n.od + 0.0005); // slow growth so trends are visible
+    if (n.grow)
+        n.od = std::min(3.0, n.od + 0.0005); // slow growth so trends are visible
     n.flags |= FlagDataReady;
     return v;
 }
@@ -182,6 +200,28 @@ void SimulatedNodeBus::execute(Node &n, const QByteArray &data)
             break;
         }
         n.ledMask = uint16_t(mask);
+        break;
+    }
+    case CmdPattern: {
+        if (data.size() != 1 + 2 * kVisibleLeds) {
+            n.error = ErrInvalidArgument;
+            break;
+        }
+        bool valid = true;
+        for (int led = 0; led < kVisibleLeds; ++led) {
+            const int v = arg16(1 + 2 * led);
+            if (v < 0 || v > kMaxLevel)
+                valid = false;
+            n.pattern[led] = uint16_t(v);
+        }
+        if (!valid) {
+            n.error = ErrInvalidArgument;
+            break;
+        }
+        n.usePattern = true;
+        n.pages[PageLastMeasurement] = measure(n);
+        n.usePattern = false;
+        n.ledMask = 0;
         break;
     }
     case CmdSample:
@@ -270,7 +310,7 @@ QByteArray SimulatedNodeBus::statusBytes(const Node &n) const
     b[1] = char(copy.flags);
     b[2] = copy.lastCommand;
     b[3] = char(copy.error);
-    b[4] = char(0x01); // firmware version of node-routine v0.1
+    b[4] = char(kFirmwarePattern); // firmware version of node-routine v0.2
     b[5] = char(remaining & 0xFF);
     b[6] = char(remaining >> 8);
     b[7] = char(copy.address);

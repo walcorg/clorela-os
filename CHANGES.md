@@ -5,6 +5,12 @@ All notable changes to Clorela-OS are listed here. Dates are UTC.
 ## [Unreleased]
 
 ### Added
+- **Laura Encoding (Codificado de Laura)**, optical challenge protocol v1 (`docs/laura-encoding.md`). Requires node-routine firmware 0x02.
+  - Node protocol: `X` (each of the 12 visible LEDs at its own 12-bit intensity, 16 readings) and `NodeClient::measurePattern()`; `NodeClient::calibrate()` reads the `C` pages (dark baseline and each LED alone).
+  - `clorela-acqd`: `laura_calibrate` and `laura_challenge` on the control socket. Each answer becomes a canonical record (domain-separated, little-endian) with a SHA-256 digest, signed by the configured `Signer` (unsigned with `NullSigner`). Nodes with firmware 0x01 are reported as needing an update.
+  - Simulated node: `X`, firmware version 0x02, and a per-node optical coupling so every simulated node has its own fingerprint (`setGrowth()` test hook to freeze the culture).
+  - `tests/tst_laura.cpp`: the pattern follows the calibrated matrix, a wrong answer is rejected, two nodes have different matrices, the digest is canonical, the control socket validates its input, a sterilizing node refuses.
+  - `tools/laura/laura_server_reference.py`: server-side reference (calibration, fresh challenges, verification, digest check, four attacks, culture signature over time). Not installed on the node.
 - Repository skeleton: MIT license, `.gitignore` for CMake, Qt Creator and Yocto/kas build trees, this changelog.
 - `clorela-ui`: Qt 6 Widgets interface ported from `clorela_os_v14` with the same menu tree (Account, View, Configure, Options, Help), real F1/F5 shortcuts, English source strings with Spanish and French translations switchable at runtime, Graph and Numeric views fed from the local measurement database, full-screen mode and a restricted mode that disables network-only functions when the node is offline.
 - `clorela_common`: INI configuration (`data/clorela.conf`, `data/dev.conf`), SQLite measurement store (WAL), offline detection from the routing table.

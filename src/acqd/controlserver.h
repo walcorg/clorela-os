@@ -6,9 +6,13 @@
 //   -> {"cmd":"start"} / {"cmd":"stop"}     <- {"ok":true,...}
 //   -> {"cmd":"sterilize","seconds":300}    <- {"ok":true,...}
 //   -> {"cmd":"stop_uv"}                    <- {"ok":true,...}
+//   -> {"cmd":"laura_calibrate","node":16}  <- {"ok":true,"laura":{dark, leds, digest, signature,...}}
+//   -> {"cmd":"laura_challenge","node":16,"challenge_id":"<hex>","levels":[12 x 0-4095]}
+//                                           <- {"ok":true,"laura":{readings, digest, signature,...}}
 // Errors: {"ok":false,"error":"..."}. Every reply carries the current snapshot.
 // Commands are queued to the service thread; the reply reflects the state
-// before the command took effect.
+// before the command took effect. The laura_* commands are the exception: they
+// wait for the node (up to a few seconds) and return its answer.
 #pragma once
 
 #include "acquisitionservice.h"
@@ -42,6 +46,7 @@ private slots:
 
 private:
     void onReadyRead(QLocalSocket *socket);
+    QJsonObject handleLaura(const QString &cmd, const QJsonObject &request, QJsonObject reply);
 
     AcquisitionService *m_service;
     Config m_config;

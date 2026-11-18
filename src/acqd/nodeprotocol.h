@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // I2C protocol of the node firmware, mirrored from walcorg/node-routine
-// (firmware/walcorg_node_v45/walcorg_node_v45.ino, version 0x01).
+// (firmware/walcorg_node_v45/walcorg_node_v45.ino, version 0x02).
+// 0x02 added 'X' (Laura Encoding pattern); 0x01 nodes answer it with
+// "unknown command".
 // Keep this file in sync with the sketch header.
 #pragma once
 
@@ -16,6 +18,8 @@ constexpr int kPageLength = 32;          // 16 little-endian uint16
 constexpr int kMaxWrite = 32;            // Wire buffer of the ATmega328P
 constexpr int kVisibleLeds = 12;         // TLC59401 channels 0-11
 constexpr int kUvHardMaxSeconds = 1800;  // enforced by the firmware
+constexpr int kMaxLevel = 4095;          // TLC59401 12-bit grayscale
+constexpr uint8_t kFirmwarePattern = 0x02; // first version with 'X'
 
 // Command letters.
 enum Command : char {
@@ -25,6 +29,7 @@ enum Command : char {
     CmdSingleLed = 'H',
     CmdByte = 'K',
     CmdLedMask = 'M',
+    CmdPattern = 'X',   // Laura Encoding: 12 intensities -> 16 readings
     CmdSample = 'S',
     CmdAllOff = 'O',
     CmdPlayText = 'B',
